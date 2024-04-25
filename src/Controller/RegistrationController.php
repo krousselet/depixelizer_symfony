@@ -4,6 +4,9 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Repository\UserRepository;
+use App\Service\JWTService;
+use App\Service\SendEmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class RegistrationController extends AbstractController
 {
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager , JWTService $jwt, SendEmailService $mail): Response
     {
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user);
@@ -35,11 +38,56 @@ class RegistrationController extends AbstractController
 
             // do anything else you need here, like send an email
 
+            //TOKEN GENERATION
+            //HEADER CREATION
+            $header = [
+                'typ' => 'JWT',
+                'alg' => 'HS256'
+            ];
+
+            // CONTENT CREATION (PAYLOAD)
+            $payload = [
+                'user_id' => $user->getId(),
+            ];
+            //TOKEN GENERATION
+            $token = $jwt->encoding($header, $payload, $this->getParameter('app.jwtsecret'));
+            //EMAIL SENDING
+
+            $mail->send(
+                $_ENV['APP_ADMIN_EMAIL'],
+                $user->getEmail(),
+                'Activation de votre compte sur le site Depixelizer',
+                'register',
+                compact('user', 'token')
+            );
             return $this->redirectToRoute('app_home');
         }
 
         return $this->render('registration/register.html.twig', [
             'registrationForm' => $form,
         ]);
+    }
+    #[Route('/verif/{token}', name: 'app_verify_user')]
+    public function verifUser($token,
+                              JWTService $jwt,
+                              UserRepository $userRepository,
+                              EntityManagerInterface $em): Response
+    {
+        // TOKEN COMPARISON IN ORDER TO VERIFY IF IT IS VALID + SIGNATURE
+        if(
+            $jwt->isValid($token)
+            && !$jwt->isExpired($token)
+            && $jwt->check($token, $this->getParameter('app.jwtsecret'))) {
+            $payload = $jwt->getPayload($token);
+            $user = $userRepository->find($payload['user_id']);
+            if($user && !$user->isVerified()) {
+                $user->setVerified(true);
+                $em->flush();
+                $this->addFlash('success', 'L\'utilisateur est vérifié !');
+                return $this->redirectToRoute('app_home');
+            }
+            $this->addFlash('danger', 'Le token est invalide ou a expiré');
+            return $this->redirectToRoute('app_login');
+        }
     }
 }

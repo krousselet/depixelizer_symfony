@@ -2,17 +2,17 @@
 
 namespace App\Controller;
 
-use App\Service\JWTService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-class HomeController extends AbstractController
+class MyspaceController extends AbstractController
 {
-    #[Route('/', name: 'app_home')]
+    #[Route('/profile/myspace', name: 'app_myspace')]
     public function index(): Response
     {
-        return $this->render('home/index.html.twig', [
+        return $this->render('myspace/index.html.twig', [
+            'controller_name' => 'MyspaceController',
         ]);
     }
 }
