@@ -73,21 +73,27 @@ class RegistrationController extends AbstractController
                               UserRepository $userRepository,
                               EntityManagerInterface $em): Response
     {
-        // TOKEN COMPARISON IN ORDER TO VERIFY IF IT IS VALID + SIGNATURE
-        if(
-            $jwt->isValid($token)
-            && !$jwt->isExpired($token)
-            && $jwt->check($token, $this->getParameter('app.jwtsecret'))) {
+        // Check token validity and signature
+        if ($jwt->isValid($token) && !$jwt->isExpired($token) && $jwt->check($token, $this->getParameter('app.jwtsecret'))) {
             $payload = $jwt->getPayload($token);
             $user = $userRepository->find($payload['user_id']);
-            if($user && !$user->isVerified()) {
+            if ($user && !$user->isVerified()) {
                 $user->setVerified(true);
                 $em->flush();
                 $this->addFlash('success', 'L\'utilisateur est vérifié !');
                 return $this->redirectToRoute('app_home');
+            } else {
+                // This block handles the case where the user is already verified or does not exist
+                $this->addFlash('danger', 'L\'utilisateur est déjà vérifié ou n\'existe pas.');
+                return $this->redirectToRoute('app_login');
             }
+        } else {
+            // Handles invalid or expired tokens
             $this->addFlash('danger', 'Le token est invalide ou a expiré');
             return $this->redirectToRoute('app_login');
         }
+
+        // Fallback return (this should theoretically never be reached due to the above returns)
+        return $this->redirectToRoute('app_login');
     }
 }

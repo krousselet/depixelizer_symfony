@@ -9,10 +9,13 @@ use Symfony\Component\Routing\Attribute\Route;
 class MyspaceController extends AbstractController
 {
     #[Route('/profile/myspace', name: 'app_myspace')]
-    public function index(): Response
+    public function index(
+    ): Response
     {
+        $user = $this->getUser();
+
         return $this->render('myspace/index.html.twig', [
-            'controller_name' => 'MyspaceController',
+            'user' => $user
         ]);
     }
 }
