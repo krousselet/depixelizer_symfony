@@ -13,7 +13,6 @@ class MyspaceController extends AbstractController
     ): Response
     {
         $user = $this->getUser();
-
         return $this->render('myspace/index.html.twig', [
             'user' => $user
         ]);

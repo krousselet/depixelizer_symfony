@@ -21,11 +21,14 @@ class PlayController extends AbstractController
     public function playGame(Game $game): Response
     {
         // Get a random image URL from the Game service
-        $randomImageUrl = $game->selectRandomImage();
+        try {
+            $imagePath = $game->selectRandomImage();
+        } catch (\Exception $e) {
+        }
 
         // Pass the image URL to the Twig template to render it
         return $this->render('play/game.html.twig', [
-            'imageUrl' => $randomImageUrl,
+            'imagePath' => $imagePath,
         ]);
     }
 }

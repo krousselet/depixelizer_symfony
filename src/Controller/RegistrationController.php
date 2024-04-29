@@ -24,6 +24,10 @@ class RegistrationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+
+            if ($form->get('email')->getData() == $_ENV['APP_ADMIN_EMAIL']) {
+                $user->setRoles(['ROLE_ADMIN']);
+            }else $user->setRoles([]);
             // encode the plain password
             $user->setPassword(
                 $userPasswordHasher->hashPassword(

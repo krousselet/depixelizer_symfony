@@ -2,42 +2,48 @@
 
 namespace App\Service;
 
+use App\Entity\GameImage;
+use Doctrine\ORM\EntityManagerInterface;
+use Exception;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+
 class Game
 {
-    public function __construct()
+    private EntityManagerInterface $entityManager;
+    private string $imagesDirectory;
+
+    public function __construct(EntityManagerInterface $entityManager, ParameterBagInterface $params)
     {
-        // Assuming the root of your Symfony project is the current working directory
-        $this->imagesPath = $_SERVER['DOCUMENT_ROOT'] . '/images/';
+        $this->entityManager = $entityManager;
+        // Assuming you have set a parameter for images directory
+        $this->imagesDirectory = '/public/images';
     }
+
     public function selectRandomImage(): string
     {
-        // Check if the directory exists
-        if (!is_dir($this->imagesPath)) {
-            throw new \Exception("Le dossier 'images' n'existe pas.");
+        $imageRepository = $this->entityManager->getRepository(GameImage::class);
+        $images = $imageRepository->findAll();
+
+        if (empty($images)) {
+            throw new Exception("Aucune image disponible dans la base de données.");
         }
 
-        // Read files from the directory, ignoring '.' and '..'
-        $files = array_diff(scandir($this->imagesPath), array('..', '.'));
-        $files = array_filter($files, function ($file) {
-            return !is_dir($this->imagesPath . $file); // Ensure that only files are considered
-        });
+        // Select a random GameImage entity
+        $randomImage = $images[array_rand($images)];
 
-        if (empty($files)) {
-            throw new \Exception("Aucune image dans le dossier.");
-        }
-
-        // Select a random file
-        $randomFile = $files[array_rand($files)];
-
-        // Return the web-accessible path to the file
-        return '/images/' . $randomFile;
+        return $this->imagesDirectory . $randomImage->getFilePath();
     }
-    public function initializeNewGame($user)
+
+    public function initializeNewGame($user): void
     {
-        // Select a random image from your database
-        $image = $this->selectRandomImage();
+        // Select a random image path
+        try {
+            $imagePath = $this->selectRandomImage();
+        } catch (Exception $e) {
+        }
 
         // Initialize game settings
+        // This would involve setting up a new game session, possibly storing state in the database
         // Save these details in the database or session
     }
 }
